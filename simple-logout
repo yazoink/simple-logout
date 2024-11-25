@@ -84,7 +84,7 @@ def main():
         if visual is not None:
             window.set_visual(visual)
         css_provider = Gtk.CssProvider()
-        with open("./style.css", "r") as f:
+        with open(config_dir + "style.css", "r") as f:
             css = f.read()
         css_provider.load_from_data(css)
 
