@@ -70,7 +70,7 @@ def main():
     GtkLayerShell.init_for_window(window)
     GtkLayerShell.set_layer(window, GtkLayerShell.Layer.TOP)
     GtkLayerShell.auto_exclusive_zone_enable(window)
-    GtkLayerShell.set_keyboard_mode(window, GtkLayerShell.KeyboardMode.ON_DEMAND)
+    GtkLayerShell.set_keyboard_mode(window, GtkLayerShell.KeyboardMode.EXCLUSIVE)
 
     event_box = Gtk.EventBox()
     vbox = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
