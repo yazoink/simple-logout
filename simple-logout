@@ -130,7 +130,7 @@ def main():
             elif b["image"].startswith("~"):
                 image_path = b["image"].replace("~", home)
             else:
-                if config_file == config_dir' + "config.json':
+                if config_file == config_dir + "config.json":
                     image_path = config_dir + b["image"]
                 else:
                     image_path = "/usr/share/simple-logout/" + b["image"]
