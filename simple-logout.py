@@ -1,0 +1,186 @@
+#!/usr/bin/env python3
+
+import gi
+gi.require_version('Gtk', '3.0')
+
+try:
+    gi.require_version('GtkLayerShell', '0.1')
+except ValueError:
+    import sys
+    raise RuntimeError('\n\n' +
+        'If you haven\'t installed GTK Layer Shell, you need to point Python to the\n' +
+        'library by setting GI_TYPELIB_PATH and LD_LIBRARY_PATH to <build-dir>/src/.\n' +
+        'For example you might need to run:\n\n' +
+        'GI_TYPELIB_PATH=build/src LD_LIBRARY_PATH=build/src python3 ' + ' '.join(sys.argv))
+
+from gi.repository import Gtk, GtkLayerShell, Gdk
+import subprocess
+import sys
+import os
+import json
+import math
+from functools import partial
+
+
+def main():
+    config = {
+        "max_buttons_per_row": 3,
+        "buttons": [
+            {
+                "name": "lock",
+                "image": "/usr/share/simple-logout/icons/lock.png",
+                "label": "lock",
+                "command": "gtklock"
+            },
+            {
+                "name": "hibernate",
+                "image": "/usr/share/simple-logout/icons/hibernate.png",
+                "label": "hibernate",
+                "command": "systemctl hibernate"
+            },
+            {
+                "name": "shutdown",
+                "image": "/usr/share/simple-logout/icons/shutdown.png",
+                "label": "shutdown",
+                "command": "systemctl shutdown"
+            },
+            {
+                "name": "suspend",
+                "image": "icons/suspend.png",
+                "label": "suspend",
+                "command": "systemctl suspend"
+            },
+            {
+                "name": "logout",
+                "image": "/usr/share/simple-logout/icons/logout.png",
+                "label": "logout",
+                "command": "hyprctl dispatch exit"
+            },
+            {
+                "name": "reboot",
+                "image": "/usr/share/simple-logout/icons/reboot.png",
+                "label": "reboot",
+                "command": "systemctl reboot"
+            }
+        ]
+    }
+
+    window = Gtk.Window()
+
+    GtkLayerShell.init_for_window(window)
+    GtkLayerShell.set_layer(window, GtkLayerShell.Layer.TOP)
+    GtkLayerShell.auto_exclusive_zone_enable(window)
+    GtkLayerShell.set_keyboard_mode(window, GtkLayerShell.KeyboardMode.ON_DEMAND)
+
+    event_box = Gtk.EventBox()
+    vbox = Gtk.Box(spacing=10, orientation=Gtk.Orientation.VERTICAL)
+
+    home = os.environ['HOME']
+    config_dir = home + "/.config/simple-logout/"
+
+    if os.path.exists(config_dir + "style.css"):
+        screen = window.get_screen()
+        visual = screen.get_rgba_visual()
+        if visual is not None:
+            window.set_visual(visual)
+        css_provider = Gtk.CssProvider()
+        with open("./style.css", "r") as f:
+            css = f.read()
+        css_provider.load_from_data(css)
+
+        style_context = window.get_style_context()
+        style_context = Gtk.StyleContext()
+        style_context.add_provider_for_screen(
+            screen,
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
+    config_file = None
+    if os.path.exists(config_dir + "config.json"):
+        config_file = config_dir + "config.json"
+    elif os.path.exists("/usr/share/simple-logout/config.json"):
+        config_file = "/usr/share/simple-logout/config.json"
+
+    if config_file:
+        with open(config_file, "r") as f:
+            c = f.read()
+        config = json.loads(c)
+
+    if "max_buttons_per_row" not in config or config["max_buttons_per_row"] <= 0:
+        config["max_buttons_per_row"] = 0
+
+    if "show_images" not in config:
+        config["show_images"] = True
+
+    if "show_labels" not in config:
+        config["show_labels"] = True
+
+    buttons = []
+    images = {}
+    i = 0
+    for b in config["buttons"]:
+        buttons.append(Gtk.Button())
+        if "image" in b and config["show_images"] == True:
+            if "name" not in b:
+                print("Error: name not specified for button without label.")
+                sys.exit(1)
+            if b["image"].startswith("/"):
+                image_path = b["image"]
+            elif b["image"].startswith("~"):
+                image_path = b["image"].replace("~", home)
+            else:
+                image_path = home + "/.config/simple-logout/" + b["image"]
+            images[b["name"]] = Gtk.Image.new_from_file(image_path)
+            buttons[i].set_image(images[b["name"]])
+            buttons[i].set_always_show_image(True)
+            buttons[i].set_image_position(Gtk.PositionType.TOP)
+
+        if "label" in b and config["show_labels"] == True:
+            buttons[i].set_label(b["label"])
+        buttons[i].connect("clicked", partial(on_button_clicked, b["command"]))
+        i += 1
+
+    button_num = len(buttons)
+    buttons_per_row = config["max_buttons_per_row"]
+    row_num = 1
+    if button_num < buttons_per_row:
+        buttons_per_row = button_num
+    elif button_num > config["max_buttons_per_row"]:
+        row_num = math.ceil(button_num / config["max_buttons_per_row"])
+
+    rows = []
+    button_index = 0
+    for i in range(0, row_num):
+        rows.append(Gtk.Box(spacing=10))
+        for j in range(button_index, button_index + buttons_per_row):
+            rows[i].pack_start(buttons[j], True, True, 0)
+        button_index += buttons_per_row
+        vbox.pack_start(rows[i], True, True, 0)
+
+
+    window.connect('destroy', Gtk.main_quit)
+    window.connect("key-press-event", on_key_press)
+
+    event_box.add(vbox)
+    window.add(event_box)
+
+    window.set_border_width(15)
+    window.set_decorated(False)
+    window.set_resizable(True)
+    window.show_all()
+    Gtk.main()
+
+
+def on_button_clicked(command, w):
+    c = command.split()
+    subprocess.run(c)
+    sys.exit(0)
+
+
+def on_key_press(w, e):
+    if e.keyval == Gdk.KEY_Escape:
+        sys.exit(0)
+
+
+main()
