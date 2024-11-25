@@ -130,7 +130,10 @@ def main():
             elif b["image"].startswith("~"):
                 image_path = b["image"].replace("~", home)
             else:
-                image_path = home + "/.config/simple-logout/" + b["image"]
+                if config_file == config_dir' + "config.json':
+                    image_path = config_dir + b["image"]
+                else:
+                    image_path = "/usr/share/simple-logout/" + b["image"]
             images[b["name"]] = Gtk.Image.new_from_file(image_path)
             buttons[i].set_image(images[b["name"]])
             buttons[i].set_always_show_image(True)
