@@ -108,7 +108,7 @@ def main():
         try:
             config = json.loads(c)
         except ValueError:
-            print("Error: cound not parse config.json, please check for syntax errors.")
+            print("Error: could not parse config.json, please check for syntax errors.")
             sys.exit(1)
 
     if "max_buttons_per_row" not in config or config["max_buttons_per_row"] <= 0:
