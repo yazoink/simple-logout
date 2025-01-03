@@ -96,6 +96,8 @@ def main():
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
+    window.get_style_context().add_class("window-frame")
+
     config_file = None
     if os.path.exists(config_dir + "config.json"):
         config_file = config_dir + "config.json"
